@@ -18,24 +18,27 @@ label{display:block;font-weight:700;margin:16px 0 6px}
 input,select{width:100%;font-size:22px;padding:14px;border:2px solid #888;border-radius:12px;background:#fff;color:#222}
 input[type=checkbox]{width:28px;height:28px;margin:0 10px 0 0;vertical-align:middle}
 .chk{font-weight:400}
+.tr{background:#e8f0fb;border:2px solid #1f5fa8;border-radius:12px;padding:14px;font-size:22px;font-weight:700;margin-top:16px;color:#14427a}
 .big{display:block;width:100%;min-height:72px;margin:12px 0;border:0;border-radius:16px;font-size:24px;font-weight:700;color:#fff;padding:12px;text-align:center;text-decoration:none}
 .big small{display:block;font-size:17px;font-weight:400}
 .g{background:#1b7f3b}.r{background:#c62828}.b{background:#1f5fa8}.x{background:#6b6b6b}
-.gt{color:#1b7f3b}.rt{color:#c62828}.mut{color:#666}.c{text-align:center}
+.gt{color:#1b7f3b}.rt{color:#c62828}.bt{color:#1f5fa8}.mut{color:#666}.c{text-align:center}
 .sum{display:flex;gap:10px;margin:14px 0}
 .sum>div{flex:1;background:#fff;border-radius:14px;padding:12px;text-align:center;border:2px solid #ddd}
 .sum small{display:block;font-size:15px;color:#555}
 .sum b{font-size:22px}
 .card{background:#fff;border-radius:16px;padding:16px;border:3px solid #ccc;text-align:center;margin:10px 0}
-.card.ingreso{border-color:#1b7f3b}.card.gasto{border-color:#c62828}
+.card.ingreso{border-color:#1b7f3b}.card.gasto{border-color:#c62828}.card.tf{border-color:#1f5fa8}
 .card .amt{font-size:38px;font-weight:800;margin:6px 0}
 .card b{font-size:26px}
+.pill{display:inline-block;border-radius:20px;padding:6px 14px;font-size:18px;font-weight:700;background:#e6e6e6;margin:6px 0}
+.pill.b{background:#1f5fa8;color:#fff}
 .row{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:12px;margin:8px 0;border:1px solid #ddd}
 .row[data-a]{border:2px solid #3b2a1a55}
 .rn{flex:1;min-width:0;word-break:break-word}
 .rn small{display:block;color:#666;font-size:16px}
 .dot{width:36px;height:36px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
-.dot.g{background:#1b7f3b}.dot.r{background:#c62828}
+.dot.g{background:#1b7f3b}.dot.r{background:#c62828}.dot.b{background:#1f5fa8}
 .vv{font-size:30px;font-weight:800;text-align:center;margin:8px 0}
 .er{background:#ffe3e3;color:#9b1c1c;border:2px solid #c62828;border-radius:12px;padding:12px;margin:12px 0;font-weight:700}
 .warn{background:#fff3cd;color:#7a5b00;border:2px solid #e0a800;border-radius:12px;padding:12px;margin:12px 0;font-weight:700}
@@ -117,7 +120,7 @@ function ask(msg,ok){return new Promise(r=>{
   $("mc").onclick=()=>{m.hidden=true;r(false)};
 })}
 function closeModal(){$("modal").hidden=true}
-function er(t){const e=$("er");e.textContent=t;e.hidden=false;e.scrollIntoView&&e.scrollIntoView(false)}
+function er(t,id){const e=$(id||"er");e.textContent=t;e.hidden=false;e.scrollIntoView&&e.scrollIntoView(false)}
 function digits(inp,out){inp.oninput=()=>{const d=inp.value.replace(/\D/g,"").replace(/^0+/,"");inp.value=d;if(out)out.textContent=money(+d||0)}}
 
 /* ---------- acceso ---------- */
@@ -170,26 +173,33 @@ async function loadHoy(){
   S.hoy=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts);
 }
 
+/* Sumas: efectivo = ingresos que NO son transferencia; transferencias aparte */
+const suma=(a,t)=>a.filter(m=>m.tipo===t).reduce((s,m)=>s+m.valor,0);
+const ingEf=a=>a.filter(m=>m.tipo==="ingreso"&&!m.transf).reduce((s,m)=>s+m.valor,0);
+const ingTf=a=>a.filter(m=>m.tipo==="ingreso"&&m.transf).reduce((s,m)=>s+m.valor,0);
+const cntTf=a=>a.filter(m=>m.tipo==="ingreso"&&m.transf).length;
+
 function lista(a,o){
   o=o||{};reg(a);
   if(!a.length)return '<p class="c mut">No hay anotaciones.</p>';
   return a.map(m=>{
-    const i=m.tipo==="ingreso";
-    return '<div class="row"'+(o.edit?' data-a="edit" data-id="'+m.id+'"':'')+'><span class="dot '+(i?"g":"r")+'">'+(i?"＋":"－")+'</span><div class="rn"><b>'+esc(m.nombre)+'</b><small>'+(o.date?fmtF(m.fecha)+(m.nota?" · ":""):"")+esc(m.nota)+'</small></div><b class="'+(i?"gt":"rt")+'">'+money(m.valor)+'</b></div>';
+    const i=m.tipo==="ingreso",tf=i&&m.transf;
+    const sub=[o.date?fmtF(m.fecha):"",tf?"🏦 Transferencia":"",esc(m.nota)].filter(Boolean).join(" · ");
+    return '<div class="row"'+(o.edit?' data-a="edit" data-id="'+m.id+'"':'')+'><span class="dot '+(i?(tf?"b":"g"):"r")+'">'+(i?"＋":"－")+'</span><div class="rn"><b>'+esc(m.nombre)+'</b><small>'+sub+'</small></div><b class="'+(i?(tf?"bt":"gt"):"rt")+'">'+money(m.valor)+'</b></div>';
   }).join("");
 }
-const suma=(a,t)=>a.filter(m=>m.tipo===t).reduce((s,m)=>s+m.valor,0);
 
 /* ---------- INICIO ---------- */
 async function home(){
   V('<p class="c">Cargando…</p>');
   try{await loadHoy()}catch(e){return loadFail()}
-  const ing=suma(S.hoy,"ingreso"),gas=suma(S.hoy,"gasto");
+  const ing=suma(S.hoy,"ingreso"),gas=suma(S.hoy,"gasto"),tf=ingTf(S.hoy);
   const f=new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"});
   V('<p class="c mut" style="margin:0">'+esc(f)+'</p>'+
     '<button class="big g" data-a="nuevo" data-t="ingreso">＋ INGRESO<small>Un cliente pagó</small></button>'+
     '<button class="big r" data-a="nuevo" data-t="gasto">－ GASTO<small>Una compra</small></button>'+
     '<div class="sum"><div><small>Ingresos de hoy</small><b class="gt">'+money(ing)+'</b></div><div><small>Gastos de hoy</small><b class="rt">'+money(gas)+'</b></div></div>'+
+    (tf>0?'<p class="c bt" style="margin:0;font-weight:700">🏦 Incluye '+money(tf)+' en transferencias</p>':'')+
     '<h2>Anotado hoy</h2>'+(S.admin&&S.hoy.length?'<p class="mut" style="margin:0 0 6px;font-size:16px">Toque una anotación para corregirla.</p>':'')+
     lista(S.hoy,{edit:S.admin}));
 }
@@ -202,6 +212,7 @@ function nuevo(t){
     '<select id="sel"><option value="">— Toque aquí para elegir —</option>'+l.map(c=>'<option value="'+esc(c.nombre)+'">'+esc(c.nombre)+'</option>').join("")+'<option value="__otro">➕ Otro (escribir nombre)</option></select>'+
     '<div id="otro" hidden><label>Escriba el nombre</label><input id="nom" type="text" autocomplete="off"><label class="chk" style="margin-top:14px"><input type="checkbox" id="fav">Guardar en la lista para la próxima vez</label></div>'+
     '<label>Valor</label><input id="val" type="tel" inputmode="numeric" placeholder="0" autocomplete="off"><div id="vv" class="vv">$ 0</div>'+
+    (ing?'<label class="chk tr"><input type="checkbox" id="tr">🏦 Este pago es transferencia</label>':'')+
     '<label>Nota (si quiere)</label><input id="not" type="text" autocomplete="off">'+
     '<div id="er" class="er" hidden></div>'+
     '<button class="big '+(ing?"g":"r")+'" data-a="seguir" data-t="'+t+'">CONTINUAR ➜</button>'+
@@ -215,6 +226,7 @@ function nuevo(t){
     $("fav").checked=!!dr.fav;
     $("val").value=dr.valor;$("vv").textContent=money(dr.valor);
     $("not").value=dr.nota;
+    if(ing)$("tr").checked=!!dr.transf;
   }else if(!l.length)sel.value="__otro";
   $("otro").hidden=sel.value!=="__otro";
 }
@@ -224,7 +236,7 @@ function seguir(t){
   const valor=parseInt($("val").value,10)||0;
   if(!nombre)return er(isNew?"Escriba el nombre.":"Falta elegir el nombre.");
   if(valor<=0)return er("Falta escribir el valor.");
-  S.draft={t,nombre,valor,nota:$("not").value.trim(),isNew,fav:isNew&&$("fav").checked};
+  S.draft={t,nombre,valor,nota:$("not").value.trim(),isNew,fav:isNew&&$("fav").checked,transf:t==="ingreso"&&$("tr").checked};
   confirmar();
 }
 function confirmar(){
@@ -232,8 +244,11 @@ function confirmar(){
   let w="";
   if(d.valor>=500000)w+='<div class="warn">⚠ Es un valor muy alto. Revise que no sobren ceros.</div>';
   if(S.hoy.some(m=>m.tipo===d.t&&m.nombre.toLowerCase()===d.nombre.toLowerCase()&&m.valor===d.valor))w+='<div class="warn">⚠ Hoy ya se anotó lo mismo (mismo nombre y mismo valor). ¿Seguro que no está repetido?</div>';
+  const cls=d.transf?"tf":d.t;
   V('<h2 class="c">¿Está todo bien?</h2>'+
-    '<div class="card '+d.t+'"><small>'+(ing?"INGRESO":"GASTO")+'</small><br><b>'+esc(d.nombre)+'</b><div class="amt '+(ing?"gt":"rt")+'">'+money(d.valor)+'</div>'+(d.nota?'<div>'+esc(d.nota)+'</div>':'')+(d.fav?'<small class="mut">Se guardará en la lista</small>':'')+'</div>'+w+
+    '<div class="card '+cls+'"><small>'+(ing?"INGRESO":"GASTO")+'</small><br><b>'+esc(d.nombre)+'</b><div class="amt '+(ing?(d.transf?"bt":"gt"):"rt")+'">'+money(d.valor)+'</div>'+
+    (ing?(d.transf?'<div class="pill b">🏦 TRANSFERENCIA</div>':'<div class="pill">💵 Efectivo</div>'):'')+
+    (d.nota?'<div>'+esc(d.nota)+'</div>':'')+(d.fav?'<small class="mut">Se guardará en la lista</small>':'')+'</div>'+w+
     '<button class="big g" id="gb" data-a="guardar">✔ SÍ, GUARDAR</button>'+
     '<button class="big x" data-a="corregir">✎ CORREGIR</button>');
 }
@@ -243,7 +258,7 @@ async function guardar(){
   const b=$("gb");if(b){b.textContent="Guardando… no toque nada";b.style.opacity=".6"}
   const d=S.draft;
   try{
-    await addDoc(col("movimientos"),{tipo:d.t,nombre:d.nombre,valor:d.valor,nota:d.nota,fecha:hoy(),ts:Date.now(),uid:S.user.uid,email:S.user.email,cerrado:false});
+    await addDoc(col("movimientos"),{tipo:d.t,nombre:d.nombre,valor:d.valor,nota:d.nota,transf:!!d.transf,fecha:hoy(),ts:Date.now(),uid:S.user.uid,email:S.user.email,cerrado:false});
     if(d.fav&&!S.contactos.some(c=>c.tipo===d.t&&c.nombre.toLowerCase()===d.nombre.toLowerCase())){
       await addDoc(col("contactos"),{nombre:d.nombre,tipo:d.t});
       await loadContactos();
@@ -261,21 +276,25 @@ function edit(id){
     '<label>Tipo</label><select id="e_t"><option value="ingreso">Ingreso</option><option value="gasto">Gasto</option></select>'+
     '<label>Nombre</label><input id="e_n" type="text">'+
     '<label>Valor</label><input id="e_v" type="tel" inputmode="numeric">'+
+    '<label class="chk tr" id="e_trw"><input type="checkbox" id="e_tr">🏦 Este pago es transferencia</label>'+
     '<label>Nota</label><input id="e_o" type="text">'+
     '<label>Fecha</label><input id="e_f" type="date">'+
-    '<div id="er" class="er" hidden></div>'+
+    '<div id="e_er" class="er" hidden></div>'+
     '<button class="big g" id="e_s">GUARDAR CAMBIOS</button>'+
     '<button class="big r" id="e_d">BORRAR ESTA ANOTACIÓN</button>'+
     '<button class="big x" id="e_c">Cancelar</button></div>';
   o.hidden=false;
   $("e_t").value=m.tipo;$("e_n").value=m.nombre;$("e_v").value=m.valor;$("e_o").value=m.nota||"";$("e_f").value=m.fecha;
+  $("e_tr").checked=!!m.transf;
+  $("e_trw").hidden=m.tipo!=="ingreso";
+  $("e_t").onchange=()=>{$("e_trw").hidden=$("e_t").value!=="ingreso"};
   digits($("e_v"));
   $("e_c").onclick=closeModal;
   $("e_s").onclick=async()=>{
-    const n=$("e_n").value.trim(),v=parseInt($("e_v").value,10)||0,f=$("e_f").value;
-    if(!n||v<=0||!f)return er("Revise nombre, valor y fecha.");
+    const n=$("e_n").value.trim(),v=parseInt($("e_v").value,10)||0,f=$("e_f").value,t=$("e_t").value;
+    if(!n||v<=0||!f)return er("Revise nombre, valor y fecha.","e_er");
     try{
-      await updateDoc(doc(db,"movimientos",id),{tipo:$("e_t").value,nombre:n,valor:v,nota:$("e_o").value.trim(),fecha:f});
+      await updateDoc(doc(db,"movimientos",id),{tipo:t,nombre:n,valor:v,nota:$("e_o").value.trim(),fecha:f,transf:t==="ingreso"&&$("e_tr").checked});
       closeModal();toast("✔ Corregido");refrescar();
     }catch(e){closeModal();fail(e)}
   };
@@ -296,38 +315,43 @@ async function cierre(){
     const h=await getDocs(query(col("cierres"),orderBy("ts","desc"),limit(8)));
     var hist=h.docs.map(d=>d.data());
   }catch(e){return loadFail()}
-  const p=S.pend,ing=suma(p,"ingreso"),gas=suma(p,"gasto"),neto=ing-gas;
+  const p=S.pend,ie=ingEf(p),it=ingTf(p),gas=suma(p,"gasto"),neto=ie-gas;
   let html='<h2>Cierre de caja</h2>';
   if(!p.length)html+='<p class="c mut">No hay nada pendiente por cerrar.</p>';
   else{
     html+='<p class="mut" style="margin:0">Del '+fmtF(p[0].fecha)+' al '+fmtF(p[p.length-1].fecha)+' · '+p.length+' anotaciones</p>'+
-    '<div class="sum"><div><small>Ingresos</small><b class="gt">'+money(ing)+'</b></div><div><small>Gastos</small><b class="rt">'+money(gas)+'</b></div></div>'+
-    '<div class="card"><small>EL MENSAJERO DEBE ENTREGAR</small><div class="amt">'+money(neto)+'</div></div>'+
-    '<label>Dinero que recibió</label><input id="rec" type="tel" inputmode="numeric" placeholder="0">'+
+    '<div class="sum"><div><small>💵 Ingresos en efectivo</small><b class="gt">'+money(ie)+'</b></div><div><small>Gastos</small><b class="rt">'+money(gas)+'</b></div></div>'+
+    '<div class="card"><small>💵 EFECTIVO QUE DEBE ENTREGAR</small><div class="amt">'+money(neto)+'</div></div>'+
+    '<div class="card tf"><small>🏦 TRANSFERENCIAS (aparte, no es efectivo)</small><div class="amt bt">'+money(it)+'</div><small>'+cntTf(p)+(cntTf(p)===1?" pago":" pagos")+'</small></div>'+
+    '<p class="c mut" style="margin:4px 0">Total vendido (efectivo + transferencias): <b>'+money(ie+it)+'</b></p>'+
+    '<label>Efectivo que recibió</label><input id="rec" type="tel" inputmode="numeric" placeholder="0">'+
     '<div id="dif" class="vv" style="font-size:24px"></div>'+
     '<div id="er" class="er" hidden></div>'+
     '<button class="big g" data-a="cerrar">CERRAR CAJA</button>'+
     '<details><summary>Ver las '+p.length+' anotaciones</summary>'+lista(p,{edit:true,date:true})+'</details>';
   }
-  if(hist.length)html+='<h2>Cierres anteriores</h2>'+hist.map(c=>'<div class="row"><div class="rn"><b>'+fmtF(c.fecha)+'</b><small>'+fmtF(c.desde)+' al '+fmtF(c.hasta)+' · debía '+money(c.neto)+'</small></div><b>'+money(c.recibido)+'</b></div>').join("");
+  if(hist.length)html+='<h2>Cierres anteriores</h2>'+hist.map(c=>'<div class="row"><div class="rn"><b>'+fmtF(c.fecha)+'</b><small>'+fmtF(c.desde)+' al '+fmtF(c.hasta)+' · debía '+money(c.neto)+(c.ingTransf?' · 🏦 '+money(c.ingTransf):'')+'</small></div><b>'+money(c.recibido)+'</b></div>').join("");
   V(html);
-  if($("rec"))digits($("rec")),$("rec").addEventListener("input",()=>{
-    const r=parseInt($("rec").value,10)||0,d=r-neto,e=$("dif");
-    e.textContent=!$("rec").value?"":d===0?"✔ Cuadra exacto":d<0?"Faltan "+money(-d):"Sobran "+money(d);
-    e.className="vv "+(d===0?"gt":d<0?"rt":"");
-  });
+  if($("rec")){
+    digits($("rec"));
+    $("rec").addEventListener("input",()=>{
+      const r=parseInt($("rec").value,10)||0,d=r-neto,e=$("dif");
+      e.textContent=!$("rec").value?"":d===0?"✔ Cuadra exacto":d<0?"Faltan "+money(-d):"Sobran "+money(d);
+      e.className="vv "+(d===0?"gt":d<0?"rt":"");
+    });
+  }
 }
 async function cerrar(){
   const p=S.pend;if(!p.length||S.saving)return;
-  const ing=suma(p,"ingreso"),gas=suma(p,"gasto"),neto=ing-gas;
+  const ie=ingEf(p),it=ingTf(p),gas=suma(p,"gasto"),neto=ie-gas;
   const rv=$("rec").value;
-  if(!rv)return er("Escriba cuánto dinero recibió (si fue cero, escriba 0).");
+  if(!rv)return er("Escriba cuánto efectivo recibió (si fue cero, escriba 0).");
   const rec=parseInt(rv,10)||0,d=rec-neto;
-  if(!await ask("¿Cerrar la caja?<br><br>Debía entregar: <b>"+money(neto)+"</b><br>Recibió: <b>"+money(rec)+"</b><br>"+(d===0?"✔ Cuadra":d<0?"Faltan <b>"+money(-d)+"</b>":"Sobran <b>"+money(d)+"</b>")+"<br><br>Las "+p.length+" anotaciones quedarán cerradas.","Sí, cerrar caja"))return;
+  if(!await ask("¿Cerrar la caja?<br><br>💵 Debía entregar: <b>"+money(neto)+"</b><br>Recibió: <b>"+money(rec)+"</b><br>"+(d===0?"✔ Cuadra":d<0?"Faltan <b>"+money(-d)+"</b>":"Sobran <b>"+money(d)+"</b>")+"<br><br>🏦 Transferencias: <b>"+money(it)+"</b><br><br>Las "+p.length+" anotaciones quedarán cerradas.","Sí, cerrar caja"))return;
   S.saving=true;
   try{
     const ref=doc(col("cierres"));
-    const cd={ts:Date.now(),fecha:hoy(),desde:p[0].fecha,hasta:p[p.length-1].fecha,ingresos:ing,gastos:gas,neto:neto,recibido:rec,n:p.length};
+    const cd={ts:Date.now(),fecha:hoy(),desde:p[0].fecha,hasta:p[p.length-1].fecha,ingEfectivo:ie,ingTransf:it,ingresos:ie+it,gastos:gas,neto:neto,recibido:rec,n:p.length};
     for(let i=0;i<p.length;i+=450){
       const b=writeBatch(db);
       if(i===0)b.set(ref,cd);
@@ -365,10 +389,11 @@ async function verrep(){
     const s=await getDocs(query(col("movimientos"),where("fecha",">=",d1),where("fecha","<=",d2)));
     S.rep=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.fecha<b.fecha?1:a.fecha>b.fecha?-1:b.ts-a.ts);
   }catch(e){box.innerHTML="";return fail(e)}
-  const a=S.rep,ing=suma(a,"ingreso"),gas=suma(a,"gasto");
-  const txt="Reporte "+fmtF(d1)+" al "+fmtF(d2)+"\nIngresos: "+money(ing)+"\nGastos: "+money(gas)+"\nNeto: "+money(ing-gas);
+  const a=S.rep,ing=suma(a,"ingreso"),gas=suma(a,"gasto"),ie=ingEf(a),it=ingTf(a);
+  const txt="Reporte "+fmtF(d1)+" al "+fmtF(d2)+"\nIngresos: "+money(ing)+"\n  - Efectivo: "+money(ie)+"\n  - Transferencias: "+money(it)+"\nGastos: "+money(gas)+"\nNeto: "+money(ing-gas)+"\nEfectivo neto (efectivo - gastos): "+money(ie-gas);
   box.innerHTML='<h2>Resultado</h2><div class="sum"><div><small>Ingresos</small><b class="gt">'+money(ing)+'</b></div><div><small>Gastos</small><b class="rt">'+money(gas)+'</b></div></div>'+
-    '<div class="card"><small>NETO</small><div class="amt '+(ing-gas<0?"rt":"gt")+'">'+money(ing-gas)+'</div><small>'+a.length+' anotaciones</small></div>'+
+    '<div class="sum"><div><small>💵 En efectivo</small><b>'+money(ie)+'</b></div><div><small>🏦 Transferencias</small><b class="bt">'+money(it)+'</b></div></div>'+
+    '<div class="card"><small>NETO (ingresos - gastos)</small><div class="amt '+(ing-gas<0?"rt":"gt")+'">'+money(ing-gas)+'</div><small>'+a.length+' anotaciones</small></div>'+
     '<a class="big g" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent(txt)+'">Enviar resumen por WhatsApp</a>'+
     '<h2>Ingresos por cliente</h2>'+grow(grupo(a,"ingreso"),"gt")+
     '<h2>Gastos por lugar</h2>'+grow(grupo(a,"gasto"),"rt")+
