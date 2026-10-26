@@ -2,602 +2,426 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Registro de Repartos - Big Bites</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Mensajería</title>
+    <!-- Firebase v8 CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <style>
-        /* CSS Minimalista y de alto rendimiento */
-        :root {
-            --primary: #f97316; 
-            --primary-dark: #ea580c;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --bg: #f3f4f6;
-            --surface: #ffffff;
-            --text: #1f2937;
-            --text-light: #6b7280;
-            --border: #e5e7eb;
-        }
+        * { box-sizing: border-box; font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f4f7f6; color: #333; }
+        header { background: #1a252f; color: white; padding: 15px; text-align: center; position: relative; }
+        #logout-btn { position: absolute; right: 15px; top: 15px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; display: none; }
+        .container { padding: 20px; max-width: 600px; margin: auto; }
         
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); padding-bottom: 20px; }
+        /* Login */
+        #login-view { display: flex; flex-direction: column; gap: 15px; margin-top: 50px; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .login-box h2 { text-align: center; margin-bottom: 20px; }
         
-        header { background-color: var(--primary); color: white; padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { font-size: 1.25rem; font-weight: 600; }
-        .subtitle { font-size: 0.75rem; opacity: 0.8; margin-top: 4px; }
+        /* App */
+        #app-view { display: none; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: #ddd; cursor: pointer; border-radius: 5px 5px 0 0; font-weight: bold; white-space: nowrap; }
+        .tab-btn.active { background: #2c3e50; color: white; }
+        #tab-reportes { display: none; } /* Oculto por defecto */
+        
+        .tab-content { display: none; background: white; padding: 20px; border-radius: 0 5px 5px 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tab-content.active { display: block; }
+        
+        input, select, button { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
+        button { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:active { background: #219150; }
+        .btn-blue { background: #3498db; }
+        .btn-blue:active { background: #2980b9; }
 
-        .container { max-width: 480px; margin: 0 auto; padding: 16px; }
-        
-        .card { background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; }
-        .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 6px; color: var(--text-light); }
-        
-        input, select { 
-            width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 8px; 
-            font-size: 1rem; background-color: #f9fafb; outline: none;
-        }
-        input:focus, select:focus { border-color: var(--primary); background-color: #fff; }
-        
-        button { 
-            width: 100%; padding: 14px; border: none; border-radius: 8px; 
-            font-size: 1rem; font-weight: 600; color: white; cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        button:active { opacity: 0.8; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .btn-primary { background-color: var(--primary); }
-        .btn-success { background-color: var(--success); }
-        .btn-danger { background-color: var(--danger); }
-        .btn-outline { background-color: transparent; color: var(--text); border: 1px solid var(--border); }
+        /* Reportes */
+        .report-summary { background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+        .report-summary h3 { margin-bottom: 10px; }
+        .report-item { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding: 8px 0; font-size: 14px; }
+        .text-green { color: #27ae60; font-weight: bold; }
+        .text-red { color: #e74c3c; font-weight: bold; }
+        .text-blue { color: #2980b9; font-weight: bold; font-size: 18px;}
 
-        /* Navegación */
-        .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; white-space: nowrap;}
-        .tab { flex: 1; padding: 14px 10px; text-align: center; font-weight: 600; color: var(--text-light); border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.9rem; }
-        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-
-        /* Utilidades */
-        .hidden { display: none !important; }
-        .text-success { color: var(--success) !important; }
-        .text-danger { color: var(--danger) !important; }
-        .text-primary { color: var(--primary) !important; }
-        .font-bold { font-weight: bold; }
-        
         /* Modal */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-            z-index: 2000; padding: 16px;
-        }
-        .modal-content {
-            background: white; border-radius: 16px; width: 100%; max-width: 320px;
-            padding: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-        .modal-content h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; letter-spacing: 1px; }
-        .modal-text { font-size: 1.125rem; color: var(--text); margin-bottom: 4px; font-weight: 500; }
-        .modal-monto { font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 24px; }
-        .modal-actions { display: flex; gap: 12px; }
-        .modal-actions button { flex: 1; padding: 12px; }
-
-        /* Toast */
-        #toast {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #374151; color: white; padding: 12px 24px; border-radius: 30px;
-            font-size: 0.875rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            transition: opacity 0.3s; opacity: 0; pointer-events: none; z-index: 1000; white-space: nowrap;
-        }
-        .toast-visible { opacity: 1 !important; }
-        
-        /* Listas */
-        .lista-items { list-style: none; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
-        .lista-items li { padding: 12px 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center;}
-        
-        /* Resumen Reportes */
-        .resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-        .resumen-caja { background: #f9fafb; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
-        .resumen-caja.neto { grid-column: span 2; background: #eff6ff; border-color: #bfdbfe; }
-        .resumen-valor { font-size: 1.25rem; font-weight: bold; margin-top: 4px; }
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center; }
+        .modal-box h3 { margin-bottom: 15px; }
+        .modal-data { font-size: 18px; margin-bottom: 20px; text-align: left; background: #f9f9f9; padding: 15px; border-radius: 5px; }
+        .modal-buttons { display: flex; gap: 10px; }
+        .btn-cancel { background: #e74c3c; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>Big Bites - Repartos</h1>
-        <div id="user-info" class="subtitle">Verificando acceso...</div>
-    </header>
+<header>
+    <h1>Control de Repartos</h1>
+    <button id="logout-btn" onclick="cerrarSesion()">Salir</button>
+</header>
 
-    <div class="container">
-        <!-- LOGIN -->
-        <div id="view-auth" class="card hidden">
-            <h2 style="font-size: 1.25rem; margin-bottom: 16px; text-align: center;">Iniciar Sesión</h2>
-            <form id="form-login">
-                <div class="form-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="auth-email" required placeholder="mensajero@bigbites.com">
-                </div>
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="auth-password" required placeholder="••••••••">
-                </div>
-                <button type="submit" class="btn-primary" id="btn-login">Entrar</button>
-            </form>
-        </div>
-
-        <!-- APP PRINCIPAL -->
-        <div id="view-app" class="hidden">
-            
-            <div class="tabs">
-                <div class="tab active" id="tab-entregas" onclick="switchTab('entregas')">Entregas</div>
-                <div class="tab" id="tab-gastos" onclick="switchTab('gastos')">Gastos</div>
-                <div class="tab" id="tab-clientes" onclick="switchTab('clientes')">Clientes</div>
-                <div class="tab hidden" id="tab-reportes" onclick="switchTab('reportes')">Reportes</div>
-            </div>
-
-            <!-- ENTREGAS -->
-            <div id="sec-entregas" class="card">
-                <form id="form-entrega">
-                    <div class="form-group">
-                        <label>Cliente</label>
-                        <select id="select-cliente" required>
-                            <option value="" disabled selected>Cargando...</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group hidden" id="box-otros-cliente">
-                        <label>Nombre del Cliente (Ocasional)</label>
-                        <input type="text" id="input-otros-cliente" placeholder="Ej: Persona en la calle 45">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Valor Cobrado ($)</label>
-                        <input type="number" id="input-monto-entrega" required min="0" step="50" placeholder="Ej: 15000">
-                    </div>
-
-                    <button type="submit" class="btn-success" id="btn-submit-entrega">Registrar Entrega</button>
-                </form>
-            </div>
-
-            <!-- GASTOS -->
-            <div id="sec-gastos" class="card hidden">
-                <form id="form-gasto">
-                    <div class="form-group">
-                        <label>Concepto del Gasto</label>
-                        <input type="text" id="input-concepto-gasto" required placeholder="Ej: Gasolina, Peaje, Almuerzo">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Valor del Gasto ($)</label>
-                        <input type="number" id="input-monto-gasto" required min="0" step="50" placeholder="Ej: 20000">
-                    </div>
-
-                    <button type="submit" class="btn-danger" id="btn-submit-gasto">Registrar Gasto</button>
-                </form>
-            </div>
-            
-            <!-- CLIENTES -->
-            <div id="sec-clientes" class="card hidden">
-                <h3 style="font-size: 1rem; margin-bottom: 12px;">Crear Cliente Recurrente</h3>
-                <form id="form-cliente">
-                    <div class="form-group">
-                        <label>Nombre del local o cliente</label>
-                        <input type="text" id="input-nuevo-cliente" required placeholder="Ej: Panadería El Trigal">
-                    </div>
-                    <button type="submit" class="btn-primary" id="btn-guardar-cliente">Guardar Cliente</button>
-                </form>
-                
-                <ul id="lista-clientes-ui" class="lista-items">
-                    <li style="color: var(--text-light); text-align: center; justify-content: center;">Cargando clientes...</li>
-                </ul>
-            </div>
-
-            <!-- REPORTES (Solo Admin) -->
-            <div id="sec-reportes" class="card hidden">
-                <div class="form-group">
-                    <label>Seleccionar Fecha</label>
-                    <input type="date" id="input-fecha-reporte">
-                </div>
-                <button class="btn-primary" id="btn-generar-reporte" style="margin-bottom: 16px;">Generar Reporte</button>
-
-                <div id="resultados-reporte" class="hidden">
-                    <div class="resumen-grid">
-                        <div class="resumen-caja">
-                            <div style="font-size: 0.75rem; color: var(--text-light);">Total Ingresos</div>
-                            <div class="resumen-valor text-success" id="rep-ingresos">$0</div>
-                        </div>
-                        <div class="resumen-caja">
-                            <div style="font-size: 0.75rem; color: var(--text-light);">Total Gastos</div>
-                            <div class="resumen-valor text-danger" id="rep-gastos">$0</div>
-                        </div>
-                        <div class="resumen-caja neto">
-                            <div style="font-size: 0.75rem; color: var(--text-light);">Efectivo a Entregar (Neto)</div>
-                            <div class="resumen-valor text-primary" id="rep-neto" style="font-size: 1.5rem;">$0</div>
-                        </div>
-                    </div>
-                    
-                    <h3 style="font-size: 0.9rem; margin-bottom: 8px;">Detalle de Movimientos</h3>
-                    <ul id="lista-movimientos-ui" class="lista-items">
-                        <!-- Inyectados por JS -->
-                    </ul>
-                </div>
-            </div>
-
-            <button onclick="logout()" class="btn-outline" style="margin-top: 24px; font-size: 0.875rem;">Cerrar Sesión</button>
-        </div>
+<div class="container">
+    <!-- VISTA DE LOGIN -->
+    <div id="login-view" class="login-box">
+        <h2>Iniciar Sesión</h2>
+        <input type="email" id="email" placeholder="Correo electrónico">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="iniciarSesion()" class="btn-blue">Entrar</button>
+        <p id="login-error" style="color:red; text-align:center; display:none;"></p>
     </div>
 
-    <!-- MODAL CONFIRMACIÓN -->
-    <div id="confirm-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h2 id="modal-type">TIPO</h2>
-            <p id="modal-target" class="modal-text">Destino</p>
-            <p id="modal-amount" class="modal-monto">$0</p>
-            <div class="modal-actions">
-                <button id="btn-modal-cancel" class="btn-outline">Cancelar</button>
-                <button id="btn-modal-confirm" class="btn-primary">Confirmar</button>
+    <!-- VISTA PRINCIPAL APP -->
+    <div id="app-view">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('entregas')">Entregas</button>
+            <button class="tab-btn" onclick="switchTab('gastos')">Gastos</button>
+            <button class="tab-btn" onclick="switchTab('clientes')">Clientes</button>
+            <button class="tab-btn" id="tab-reportes" onclick="switchTab('reportes')">Reportes</button>
+        </div>
+
+        <!-- Tab Entregas -->
+        <div id="entregas" class="tab-content active">
+            <h3>Registrar Entrega</h3>
+            <label>Cliente / Destino:</label>
+            <select id="entrega-cliente" onchange="verificarSeleccionCliente()">
+                <option value="">Seleccione un cliente...</option>
+                <!-- Clientes cargados dinámicamente -->
+            </select>
+            <input type="text" id="entrega-otro" placeholder="Escriba el nombre del cliente" style="display:none;">
+            
+            <label>Valor Cobrado ($):</label>
+            <input type="number" id="entrega-valor" placeholder="Ej: 86500">
+            <button onclick="prepararEntrega()">Guardar Entrega</button>
+        </div>
+
+        <!-- Tab Gastos -->
+        <div id="gastos" class="tab-content">
+            <h3>Registrar Gasto</h3>
+            <label>Concepto:</label>
+            <select id="gasto-concepto">
+                <option value="Combustible">Combustible</option>
+                <option value="Peaje">Peaje</option>
+                <option value="Mantenimiento">Mantenimiento</option>
+                <option value="Otro">Otro</option>
+            </select>
+            <label>Valor ($):</label>
+            <input type="number" id="gasto-valor" placeholder="Ej: 20000">
+            <button onclick="prepararGasto()">Guardar Gasto</button>
+        </div>
+
+        <!-- Tab Clientes -->
+        <div id="clientes" class="tab-content">
+            <h3>Nuevo Cliente Recurrente</h3>
+            <label>Nombre del Cliente:</label>
+            <input type="text" id="nuevo-cliente-nombre" placeholder="Ej: Panadería El Trigal">
+            <button onclick="guardarCliente()">Guardar Cliente</button>
+            <p id="msg-cliente" style="color:green; margin-top:10px; text-align:center;"></p>
+        </div>
+
+        <!-- Tab Reportes -->
+        <div id="reportes" class="tab-content">
+            <h3>Cuadre Diario</h3>
+            <input type="date" id="reporte-fecha">
+            <button class="btn-blue" onclick="generarReporte()">Generar Reporte</button>
+            
+            <div id="reporte-resultados" style="display:none; margin-top:20px;">
+                <div class="report-summary">
+                    <p>Total Ingresos: <span id="res-ingresos" class="text-green">$0</span></p>
+                    <p>Total Gastos: <span id="res-gastos" class="text-red">$0</span></p>
+                    <hr style="margin:10px 0;">
+                    <p><strong>Neto a Entregar: <span id="res-neto" class="text-blue">$0</span></strong></p>
+                </div>
+                <h4>Detalle de Movimientos</h4>
+                <div id="lista-movimientos"></div>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="toast">Mensaje</div>
+<!-- MODAL DE CONFIRMACIÓN -->
+<div id="modal-overlay">
+    <div class="modal-box">
+        <h3>Confirmar Operación</h3>
+        <div class="modal-data" id="modal-content">
+            <!-- Contenido dinámico -->
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+            <button class="btn-blue" id="btn-confirmar-modal">Confirmar</button>
+        </div>
+    </div>
+</div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script>
+    // 1. Configuración de Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyAN1TVPw6FLCzfhmQErOJzGT67mPLPWPAM",
+        authDomain: "control-mensajeros-db12f.firebaseapp.com",
+        projectId: "control-mensajeros-db12f",
+        storageBucket: "control-mensajeros-db12f.firebasestorage.app",
+        messagingSenderId: "191235884534",
+        appId: "1:191235884534:web:b733d6762d37ce023373d7",
+        measurementId: "G-FVFMQBQGP0"
+    };
 
-        // ¡IMPORTANTE! Reemplaza los valores de firebaseConfig con los que te da Firebase
-        const firebaseConfig = {
-              apiKey: "AIzaSyAN1TVPw6FLCzfhmQErOJzGT67mPLPWPAM",
-              authDomain: "control-mensajeros-db12f.firebaseapp.com",
-              projectId: "control-mensajeros-db12f",
-              storageBucket: "control-mensajeros-db12f.firebasestorage.app",
-              messagingSenderId: "191235884534",
-              appId: "1:191235884534:web:b733d6762d37ce023373d7",
-              measurementId: "G-FVFMQBQGP0"
-        };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-// Inicialización correcta
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+    const ADMIN_EMAIL = 'admin@bigbites.co';
+    let accionPendiente = null;
 
-// Tu correo administrador
-        const ADMIN_EMAIL = 'admin@bigbites.co'; // <-- PON TU CORREO AQUÍ
-        const appId = 'mensajero-bigbites-v3';
-        
-        let currentUser = null;
-        let clientesData = [];
-
-        const viewAuth = document.getElementById('view-auth');
-        const viewApp = document.getElementById('view-app');
-        const userInfo = document.getElementById('user-info');
-        
-        const formatMoney = (amount) => {
-            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
-        };
-        const formatTime = (ts) => {
-            return new Date(ts).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-        };
-
-        window.showToast = function(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.classList.add('toast-visible');
-            setTimeout(() => toast.classList.remove('toast-visible'), 3000);
-        }
-
-        window.switchTab = function(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('sec-entregas').classList.add('hidden');
-            document.getElementById('sec-gastos').classList.add('hidden');
-            document.getElementById('sec-clientes').classList.add('hidden');
-            document.getElementById('sec-reportes').classList.add('hidden');
-
-            document.getElementById('tab-' + tab).classList.add('active');
-            document.getElementById('sec-' + tab).classList.remove('hidden');
-        }
-
-        let modalConfirmCallback = null;
-        const modalEl = document.getElementById('confirm-modal');
-        
-        function solicitarConfirmacion(tipo, destino, monto, callback) {
-            const titleEl = document.getElementById('modal-type');
-            titleEl.textContent = tipo;
-            titleEl.className = tipo === 'INGRESO' ? 'text-success' : 'text-danger';
+    // 2. Control de Autenticación
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('login-view').style.display = 'none';
+            document.getElementById('app-view').style.display = 'block';
+            document.getElementById('logout-btn').style.display = 'inline-block';
             
-            document.getElementById('modal-target').textContent = destino;
-            document.getElementById('modal-amount').textContent = formatMoney(monto);
-            
-            const btnConfirm = document.getElementById('btn-modal-confirm');
-            btnConfirm.className = tipo === 'INGRESO' ? 'btn-success' : 'btn-danger';
-            
-            modalConfirmCallback = callback;
-            modalEl.classList.remove('hidden');
-        }
-
-        document.getElementById('btn-modal-cancel').addEventListener('click', () => {
-            modalEl.classList.add('hidden');
-            modalConfirmCallback = null;
-        });
-
-        document.getElementById('btn-modal-confirm').addEventListener('click', () => {
-            modalEl.classList.add('hidden');
-            if (modalConfirmCallback) modalConfirmCallback();
-            modalConfirmCallback = null;
-        });
-
-        // --- AUTH ---
-        if (auth) {
-            if (typeof __initial_auth_token !== 'undefined') {
-                signInWithCustomToken(auth, __initial_auth_token).catch(e => console.error(e));
-            }
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    userInfo.textContent = user.email || 'Usuario';
-                    viewAuth.classList.add('hidden');
-                    viewApp.classList.remove('hidden');
-                    
-                    // Control de acceso para Reportes
-                    if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-                        document.getElementById('tab-reportes').classList.remove('hidden');
-                        document.getElementById('input-fecha-reporte').valueAsDate = new Date();
-                    } else {
-                        document.getElementById('tab-reportes').classList.add('hidden');
-                    }
-                    
-                    cargarClientes();
-                } else {
-                    currentUser = null;
-                    userInfo.textContent = "Desconectado";
-                    viewAuth.classList.remove('hidden');
-                    viewApp.classList.add('hidden');
+            if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                document.getElementById('tab-reportes').style.display = 'inline-block';
+            } else {
+                document.getElementById('tab-reportes').style.display = 'none';
+                if(document.getElementById('reportes').classList.contains('active')){
+                    switchTab('entregas');
                 }
-            });
-
-            document.getElementById('form-login').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const email = document.getElementById('auth-email').value;
-                const pass = document.getElementById('auth-password').value;
-                const btn = document.getElementById('btn-login');
-                btn.textContent = "Cargando..."; btn.disabled = true;
-                
-                signInWithEmailAndPassword(auth, email, pass)
-                    .then(() => showToast("Sesión iniciada"))
-                    .catch(err => showToast("Error: Verifica credenciales"))
-                    .finally(() => { btn.textContent = "Entrar"; btn.disabled = false; });
-            });
-
-            window.logout = function() { signOut(auth); }
+            }
+            cargarClientes();
+            document.getElementById('reporte-fecha').valueAsDate = new Date();
+        } else {
+            document.getElementById('login-view').style.display = 'flex';
+            document.getElementById('app-view').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'none';
         }
+    });
 
-        // --- CLIENTES ---
-        const selectCliente = document.getElementById('select-cliente');
-        const boxOtros = document.getElementById('box-otros-cliente');
-        const inputOtros = document.getElementById('input-otros-cliente');
-
-        function cargarClientes() {
-            if (!currentUser || !db) return;
-            // Usamos path público para que Admin y Mensajero compartan los mismos datos
-            const clientesRef = collection(db, 'artifacts', appId, 'public', 'data', 'clientes');
-            
-            onSnapshot(clientesRef, (snapshot) => {
-                clientesData = [];
-                snapshot.forEach(doc => {
-                    clientesData.push({ id: doc.id, nombre: doc.data().nombre });
-                });
-                clientesData.sort((a, b) => a.nombre.localeCompare(b.nombre));
-                actualizarVistasClientes();
-            }, (error) => {
-                showToast("Error cargando clientes.");
+    function iniciarSesion() {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        const errorMsg = document.getElementById('login-error');
+        
+        auth.signInWithEmailAndPassword(email, pass)
+            .catch(error => {
+                errorMsg.style.display = 'block';
+                errorMsg.innerText = "Error: " + error.message;
             });
-        }
+    }
 
-        function actualizarVistasClientes() {
-            selectCliente.innerHTML = `
-                <option value="" disabled selected>Selecciona un cliente...</option>
-                <option value="OTROS">👤 Otros (Cliente Ocasional)</option>
-                <option value="CREAR" class="text-primary font-bold">➕ Crear nuevo cliente recurrente</option>
-                <option disabled>──────────</option>
-            `;
+    function cerrarSesion() {
+        auth.signOut();
+    }
+
+    // 3. Control de Pestañas (UI)
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function formatearDinero(numero) {
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(numero);
+    }
+
+    // 4. Gestión de Clientes
+    function cargarClientes() {
+        db.collection('clientes').orderBy('nombre').onSnapshot(snapshot => {
+            const select = document.getElementById('entrega-cliente');
+            select.innerHTML = '<option value="">Seleccione un cliente...</option>';
             
-            clientesData.forEach(c => {
+            snapshot.forEach(doc => {
                 const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.textContent = c.nombre;
-                opt.dataset.nombre = c.nombre;
-                selectCliente.appendChild(opt);
+                opt.value = doc.data().nombre;
+                opt.innerText = doc.data().nombre;
+                select.appendChild(opt);
             });
+            
+            // Opciones estáticas al final
+            select.innerHTML += '<option value="otros">Otros</option>';
+            select.innerHTML += '<option value="crear_nuevo">➕ Crear nuevo cliente recurrente</option>';
+        });
+    }
 
-            const listaUI = document.getElementById('lista-clientes-ui');
-            listaUI.innerHTML = '';
-            if (clientesData.length === 0) {
-                listaUI.innerHTML = '<li style="color: var(--text-light); justify-content:center;">No hay clientes registrados.</li>';
-            } else {
-                clientesData.forEach(c => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span>🏢 ${c.nombre}</span>`;
-                    listaUI.appendChild(li);
-                });
-            }
+    function verificarSeleccionCliente() {
+        const val = document.getElementById('entrega-cliente').value;
+        const inputOtro = document.getElementById('entrega-otro');
+        
+        if (val === 'otros') {
+            inputOtro.style.display = 'block';
+        } else if (val === 'crear_nuevo') {
+            inputOtro.style.display = 'none';
+            document.getElementById('entrega-cliente').value = ""; // Reset
+            switchTab('clientes');
+            // Simular clic en el botón de la pestaña para que se ilumine
+            document.querySelectorAll('.tab-btn')[2].click(); 
+        } else {
+            inputOtro.style.display = 'none';
+        }
+    }
+
+    function guardarCliente() {
+        const nombre = document.getElementById('nuevo-cliente-nombre').value.trim();
+        if (!nombre) return alert('Escriba un nombre válido');
+
+        db.collection('clientes').add({ nombre: nombre })
+            .then(() => {
+                document.getElementById('nuevo-cliente-nombre').value = '';
+                const msg = document.getElementById('msg-cliente');
+                msg.innerText = 'Cliente guardado correctamente';
+                setTimeout(() => msg.innerText = '', 3000);
+            })
+            .catch(error => alert('Error al guardar: ' + error.message));
+    }
+
+    // 5. Modal de Confirmación
+    function abrirModal(htmlContent, callbackConfirmacion) {
+        document.getElementById('modal-content').innerHTML = htmlContent;
+        document.getElementById('modal-overlay').style.display = 'flex';
+        
+        const btnConfirmar = document.getElementById('btn-confirmar-modal');
+        btnConfirmar.onclick = () => {
+            btnConfirmar.disabled = true;
+            btnConfirmar.innerText = 'Guardando...';
+            callbackConfirmacion().then(() => {
+                cerrarModal();
+                btnConfirmar.disabled = false;
+                btnConfirmar.innerText = 'Confirmar';
+            }).catch(err => {
+                alert('Error: ' + err.message);
+                btnConfirmar.disabled = false;
+                btnConfirmar.innerText = 'Confirmar';
+            });
+        };
+    }
+
+    function cerrarModal() {
+        document.getElementById('modal-overlay').style.display = 'none';
+    }
+
+    // 6. Entregas y Gastos
+    function prepararEntrega() {
+        let cliente = document.getElementById('entrega-cliente').value;
+        if (cliente === 'otros') {
+            cliente = document.getElementById('entrega-otro').value;
+        }
+        const valor = parseFloat(document.getElementById('entrega-valor').value);
+
+        if (!cliente || isNaN(valor) || valor <= 0) {
+            return alert('Complete el cliente y un valor válido.');
         }
 
-        selectCliente.addEventListener('change', () => {
-            if (selectCliente.value === 'CREAR') {
-                switchTab('clientes');
-                selectCliente.value = '';
-                boxOtros.classList.add('hidden');
-                inputOtros.removeAttribute('required');
-            } else if (selectCliente.value === 'OTROS') {
-                boxOtros.classList.remove('hidden');
-                inputOtros.setAttribute('required', 'true');
-                inputOtros.focus();
-            } else {
-                boxOtros.classList.add('hidden');
-                inputOtros.removeAttribute('required');
-            }
-        });
+        const html = `
+            <div style="text-align:center; font-weight:bold; color:#27ae60; margin-bottom:10px;">TIPO: INGRESO</div>
+            <div><strong>Cliente:</strong> ${cliente}</div>
+            <div><strong>Valor:</strong> ${formatearDinero(valor)}</div>
+        `;
 
-        document.getElementById('form-cliente').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUser || !db) return;
-            
-            const inputNuevo = document.getElementById('input-nuevo-cliente');
-            const btn = document.getElementById('btn-guardar-cliente');
-            btn.textContent = "Guardando..."; btn.disabled = true;
-
-            try {
-                const clientesRef = collection(db, 'artifacts', appId, 'public', 'data', 'clientes');
-                await addDoc(clientesRef, { nombre: inputNuevo.value.trim(), creadoEn: Date.now() });
-                showToast("Cliente guardado");
-                inputNuevo.value = '';
-            } catch (e) {
-                showToast("Error al guardar");
-            } finally {
-                btn.textContent = "Guardar Cliente"; btn.disabled = false;
-            }
-        });
-
-        // --- ENTREGAS ---
-        document.getElementById('form-entrega').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!currentUser || !db) return;
-
-            let nombreClienteFinal = "";
-            if (selectCliente.value === 'OTROS') {
-                nombreClienteFinal = inputOtros.value.trim();
-            } else {
-                nombreClienteFinal = selectCliente.options[selectCliente.selectedIndex].dataset.nombre;
-            }
-            const monto = parseFloat(document.getElementById('input-monto-entrega').value);
-            
-            solicitarConfirmacion('INGRESO', nombreClienteFinal, monto, async () => {
-                const btn = document.getElementById('btn-submit-entrega');
-                btn.disabled = true; btn.textContent = "Registrando...";
-
-                try {
-                    const entregasRef = collection(db, 'artifacts', appId, 'public', 'data', 'entregas');
-                    await addDoc(entregasRef, { cliente: nombreClienteFinal, monto: monto, fecha: Date.now(), por: currentUser.email });
-                    showToast("✅ Ingreso registrado");
-                    document.getElementById('form-entrega').reset();
-                    boxOtros.classList.add('hidden');
-                    inputOtros.removeAttribute('required');
-                } catch (err) {
-                    showToast("Error al guardar");
-                } finally {
-                    btn.disabled = false; btn.textContent = "Registrar Entrega";
-                }
+        abrirModal(html, () => {
+            return db.collection('entregas').add({
+                cliente: cliente,
+                valor: valor,
+                fecha: new Date().toISOString(),
+                usuario: auth.currentUser.email
+            }).then(() => {
+                document.getElementById('entrega-cliente').value = '';
+                document.getElementById('entrega-otro').style.display = 'none';
+                document.getElementById('entrega-otro').value = '';
+                document.getElementById('entrega-valor').value = '';
             });
         });
+    }
 
-        // --- GASTOS ---
-        document.getElementById('form-gasto').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!currentUser || !db) return;
+    function prepararGasto() {
+        const concepto = document.getElementById('gasto-concepto').value;
+        const valor = parseFloat(document.getElementById('gasto-valor').value);
 
-            const concepto = document.getElementById('input-concepto-gasto').value.trim();
-            const monto = parseFloat(document.getElementById('input-monto-gasto').value);
-            
-            solicitarConfirmacion('GASTO', concepto, monto, async () => {
-                const btn = document.getElementById('btn-submit-gasto');
-                btn.disabled = true; btn.textContent = "Registrando...";
+        if (!concepto || isNaN(valor) || valor <= 0) {
+            return alert('Ingrese un concepto y un valor válido.');
+        }
 
-                try {
-                    const gastosRef = collection(db, 'artifacts', appId, 'public', 'data', 'gastos');
-                    await addDoc(gastosRef, { concepto: concepto, monto: monto, fecha: Date.now(), por: currentUser.email });
-                    showToast("✅ Gasto registrado");
-                    document.getElementById('form-gasto').reset();
-                } catch (err) {
-                    showToast("Error al guardar");
-                } finally {
-                    btn.disabled = false; btn.textContent = "Registrar Gasto";
-                }
+        const html = `
+            <div style="text-align:center; font-weight:bold; color:#e74c3c; margin-bottom:10px;">TIPO: GASTO</div>
+            <div><strong>Concepto:</strong> ${concepto}</div>
+            <div><strong>Valor:</strong> ${formatearDinero(valor)}</div>
+        `;
+
+        abrirModal(html, () => {
+            return db.collection('gastos').add({
+                concepto: concepto,
+                valor: valor,
+                fecha: new Date().toISOString(),
+                usuario: auth.currentUser.email
+            }).then(() => {
+                document.getElementById('gasto-concepto').value = 'Combustible';
+                document.getElementById('gasto-valor').value = '';
             });
         });
+    }
 
-        // --- REPORTES ---
-        document.getElementById('btn-generar-reporte').addEventListener('click', async () => {
-            if (!currentUser || !db) return;
-            const fechaVal = document.getElementById('input-fecha-reporte').value;
-            if (!fechaVal) return showToast("Selecciona una fecha");
+    // 7. Reportes (Solo Admin)
+    async function generarReporte() {
+        const fechaSelect = document.getElementById('reporte-fecha').value;
+        if (!fechaSelect) return alert('Seleccione una fecha');
 
-            const btn = document.getElementById('btn-generar-reporte');
-            btn.textContent = "Consultando..."; btn.disabled = true;
+        const inicioDia = new Date(fechaSelect + 'T00:00:00').toISOString();
+        const finDia = new Date(fechaSelect + 'T23:59:59').toISOString();
 
-            try {
-                // Crear rangos de fecha para el filtro en JS
-                // Nota: Usamos el día local para el reporte.
-                const localDate = new Date(fechaVal + 'T00:00:00');
-                const startOfDay = localDate.getTime();
-                const endOfDay = localDate.getTime() + (24 * 60 * 60 * 1000) - 1;
+        let totalIngresos = 0;
+        let totalGastos = 0;
+        const movimientos = [];
 
-                // Descargar Colecciones completas (requerido sin índices)
-                const entregasRef = collection(db, 'artifacts', appId, 'public', 'data', 'entregas');
-                const gastosRef = collection(db, 'artifacts', appId, 'public', 'data', 'gastos');
+        try {
+            // Consultar Entregas
+            const entregasSnap = await db.collection('entregas')
+                .where('fecha', '>=', inicioDia)
+                .where('fecha', '<=', finDia)
+                .get();
 
-                const [snapEntregas, snapGastos] = await Promise.all([
-                    getDocs(entregasRef), getDocs(gastosRef)
-                ]);
+            entregasSnap.forEach(doc => {
+                const data = doc.data();
+                totalIngresos += data.valor;
+                movimientos.push({ tipo: 'ingreso', texto: `Cobro: ${data.cliente}`, valor: data.valor, hora: new Date(data.fecha) });
+            });
 
-                let totalIngresos = 0;
-                let totalGastos = 0;
-                let movimientos = [];
+            // Consultar Gastos
+            const gastosSnap = await db.collection('gastos')
+                .where('fecha', '>=', inicioDia)
+                .where('fecha', '<=', finDia)
+                .get();
 
-                snapEntregas.forEach(doc => {
-                    const d = doc.data();
-                    if (d.fecha >= startOfDay && d.fecha <= endOfDay) {
-                        totalIngresos += d.monto;
-                        movimientos.push({ tipo: 'INGRESO', texto: d.cliente, monto: d.monto, fecha: d.fecha });
-                    }
-                });
+            gastosSnap.forEach(doc => {
+                const data = doc.data();
+                totalGastos += data.valor;
+                movimientos.push({ tipo: 'gasto', texto: `Gasto: ${data.concepto}`, valor: data.valor, hora: new Date(data.fecha) });
+            });
 
-                snapGastos.forEach(doc => {
-                    const d = doc.data();
-                    if (d.fecha >= startOfDay && d.fecha <= endOfDay) {
-                        totalGastos += d.monto;
-                        movimientos.push({ tipo: 'GASTO', texto: d.concepto, monto: d.monto, fecha: d.fecha });
-                    }
-                });
+            // Renderizar Resultados
+            document.getElementById('res-ingresos').innerText = formatearDinero(totalIngresos);
+            document.getElementById('res-gastos').innerText = formatearDinero(totalGastos);
+            document.getElementById('res-neto').innerText = formatearDinero(totalIngresos - totalGastos);
 
-                // Ordenar cronológicamente
-                movimientos.sort((a, b) => a.fecha - b.fecha);
+            // Ordenar por hora y mostrar
+            movimientos.sort((a, b) => a.hora - b.hora);
+            const listaHtml = movimientos.map(m => {
+                const horaStr = m.hora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const colorClase = m.tipo === 'ingreso' ? 'text-green' : 'text-red';
+                const signo = m.tipo === 'ingreso' ? '+' : '-';
+                return `<div class="report-item">
+                            <span>${horaStr} - ${m.texto}</span>
+                            <span class="${colorClase}">${signo}${formatearDinero(m.valor)}</span>
+                        </div>`;
+            }).join('');
 
-                // Actualizar UI
-                document.getElementById('rep-ingresos').textContent = formatMoney(totalIngresos);
-                document.getElementById('rep-gastos').textContent = formatMoney(totalGastos);
-                document.getElementById('rep-neto').textContent = formatMoney(totalIngresos - totalGastos);
+            document.getElementById('lista-movimientos').innerHTML = listaHtml || '<p style="text-align:center; padding:10px;">No hay movimientos este día.</p>';
+            document.getElementById('reporte-resultados').style.display = 'block';
 
-                const listaMov = document.getElementById('lista-movimientos-ui');
-                listaMov.innerHTML = '';
-                if (movimientos.length === 0) {
-                    listaMov.innerHTML = '<li style="justify-content:center; color: var(--text-light);">No hay registros en esta fecha.</li>';
-                } else {
-                    movimientos.forEach(m => {
-                        const li = document.createElement('li');
-                        const isIngreso = m.tipo === 'INGRESO';
-                        li.innerHTML = `
-                            <div>
-                                <div class="font-bold">${m.texto}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-light);">${formatTime(m.fecha)}</div>
-                            </div>
-                            <div class="${isIngreso ? 'text-success' : 'text-danger'} font-bold">
-                                ${isIngreso ? '+' : '-'}${formatMoney(m.monto)}
-                            </div>
-                        `;
-                        listaMov.appendChild(li);
-                    });
-                }
+        } catch (error) {
+            alert('Error al generar el reporte: ' + error.message);
+        }
+    }
+</script>
 
-                document.getElementById('resultados-reporte').classList.remove('hidden');
-
-            } catch (err) {
-                console.error(err);
-                showToast("Error al generar el reporte");
-            } finally {
-                btn.textContent = "Generar Reporte"; btn.disabled = false;
-            }
-        });
-
-    </script>
 </body>
 </html>
