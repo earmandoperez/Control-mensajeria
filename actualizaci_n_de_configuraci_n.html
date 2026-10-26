@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Registro de Repartos - Big Bites</title>
+    <style>
+        /* CSS Minimalista y de alto rendimiento */
+        :root {
+            --primary: #f97316; 
+            --primary-dark: #ea580c;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f3f4f6;
+            --surface: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 20px; }
+        
+        header { background-color: var(--primary); color: white; padding: 16px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.25rem; font-weight: 600; }
+        .subtitle { font-size: 0.75rem; opacity: 0.8; margin-top: 4px; }
+
+        .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+        
+        .card { background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 6px; color: var(--text-light); }
+        
+        input, select { 
+            width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 8px; 
+            font-size: 1rem; background-color: #f9fafb; outline: none;
+        }
+        input:focus, select:focus { border-color: var(--primary); background-color: #fff; }
+        
+        button { 
+            width: 100%; padding: 14px; border: none; border-radius: 8px; 
+            font-size: 1rem; font-weight: 600; color: white; cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.8; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-primary { background-color: var(--primary); }
+        .btn-success { background-color: var(--success); }
+        .btn-danger { background-color: var(--danger); }
+        .btn-outline { background-color: transparent; color: var(--text); border: 1px solid var(--border); }
+
+        /* Navegación */
+        .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; white-space: nowrap;}
+        .tab { flex: 1; padding: 14px 10px; text-align: center; font-weight: 600; color: var(--text-light); border-bottom: 2px solid transparent; cursor: pointer; font-size: 0.9rem; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Utilidades */
+        .hidden { display: none !important; }
+        .text-success { color: var(--success) !important; }
+        .text-danger { color: var(--danger) !important; }
+        .text-primary { color: var(--primary) !important; }
+        .font-bold { font-weight: bold; }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+            z-index: 2000; padding: 16px;
+        }
+        .modal-content {
+            background: white; border-radius: 16px; width: 100%; max-width: 320px;
+            padding: 24px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .modal-content h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 8px; letter-spacing: 1px; }
+        .modal-text { font-size: 1.125rem; color: var(--text); margin-bottom: 4px; font-weight: 500; }
+        .modal-monto { font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 24px; }
+        .modal-actions { display: flex; gap: 12px; }
+        .modal-actions button { flex: 1; padding: 12px; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #374151; color: white; padding: 12px 24px; border-radius: 30px;
+            font-size: 0.875rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: opacity 0.3s; opacity: 0; pointer-events: none; z-index: 1000; white-space: nowrap;
+        }
+        .toast-visible { opacity: 1 !important; }
+        
+        /* Listas */
+        .lista-items { list-style: none; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+        .lista-items li { padding: 12px 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center;}
+        
+        /* Resumen Reportes */
+        .resumen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .resumen-caja { background: #f9fafb; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+        .resumen-caja.neto { grid-column: span 2; background: #eff6ff; border-color: #bfdbfe; }
+        .resumen-valor { font-size: 1.25rem; font-weight: bold; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Big Bites - Repartos</h1>
+        <div id="user-info" class="subtitle">Verificando acceso...</div>
+    </header>
+
+    <div class="container">
+        <!-- LOGIN -->
+        <div id="view-auth" class="card hidden">
+            <h2 style="font-size: 1.25rem; margin-bottom: 16px; text-align: center;">Iniciar Sesión</h2>
+            <form id="form-login">
+                <div class="form-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="auth-email" required placeholder="mensajero@bigbites.com">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary" id="btn-login">Entrar</button>
+            </form>
+        </div>
+
+        <!-- APP PRINCIPAL -->
+        <div id="view-app" class="hidden">
+            
+            <div class="tabs">
+                <div class="tab active" id="tab-entregas" onclick="switchTab('entregas')">Entregas</div>
+                <div class="tab" id="tab-gastos" onclick="switchTab('gastos')">Gastos</div>
+                <div class="tab" id="tab-clientes" onclick="switchTab('clientes')">Clientes</div>
+                <div class="tab hidden" id="tab-reportes" onclick="switchTab('reportes')">Reportes</div>
+            </div>
+
+            <!-- ENTREGAS -->
+            <div id="sec-entregas" class="card">
+                <form id="form-entrega">
+                    <div class="form-group">
+                        <label>Cliente</label>
+                        <select id="select-cliente" required>
+                            <option value="" disabled selected>Cargando...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden" id="box-otros-cliente">
+                        <label>Nombre del Cliente (Ocasional)</label>
+                        <input type="text" id="input-otros-cliente" placeholder="Ej: Persona en la calle 45">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Valor Cobrado ($)</label>
+                        <input type="number" id="input-monto-entrega" required min="0" step="50" placeholder="Ej: 15000">
+                    </div>
+
+                    <button type="submit" class="btn-success" id="btn-submit-entrega">Registrar Entrega</button>
+                </form>
+            </div>
+
+            <!-- GASTOS -->
+            <div id="sec-gastos" class="card hidden">
+                <form id="form-gasto">
+                    <div class="form-group">
+                        <label>Concepto del Gasto</label>
+                        <input type="text" id="input-concepto-gasto" required placeholder="Ej: Gasolina, Peaje, Almuerzo">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Valor del Gasto ($)</label>
+                        <input type="number" id="input-monto-gasto" required min="0" step="50" placeholder="Ej: 20000">
+                    </div>
+
+                    <button type="submit" class="btn-danger" id="btn-submit-gasto">Registrar Gasto</button>
+                </form>
+            </div>
+            
+            <!-- CLIENTES -->
+            <div id="sec-clientes" class="card hidden">
+                <h3 style="font-size: 1rem; margin-bottom: 12px;">Crear Cliente Recurrente</h3>
+                <form id="form-cliente">
+                    <div class="form-group">
+                        <label>Nombre del local o cliente</label>
+                        <input type="text" id="input-nuevo-cliente" required placeholder="Ej: Panadería El Trigal">
+                    </div>
+                    <button type="submit" class="btn-primary" id="btn-guardar-cliente">Guardar Cliente</button>
+                </form>
+                
+                <ul id="lista-clientes-ui" class="lista-items">
+                    <li style="color: var(--text-light); text-align: center; justify-content: center;">Cargando clientes...</li>
+                </ul>
+            </div>
+
+            <!-- REPORTES (Solo Admin) -->
+            <div id="sec-reportes" class="card hidden">
+                <div class="form-group">
+                    <label>Seleccionar Fecha</label>
+                    <input type="date" id="input-fecha-reporte">
+                </div>
+                <button class="btn-primary" id="btn-generar-reporte" style="margin-bottom: 16px;">Generar Reporte</button>
+
+                <div id="resultados-reporte" class="hidden">
+                    <div class="resumen-grid">
+                        <div class="resumen-caja">
+                            <div style="font-size: 0.75rem; color: var(--text-light);">Total Ingresos</div>
+                            <div class="resumen-valor text-success" id="rep-ingresos">$0</div>
+                        </div>
+                        <div class="resumen-caja">
+                            <div style="font-size: 0.75rem; color: var(--text-light);">Total Gastos</div>
+                            <div class="resumen-valor text-danger" id="rep-gastos">$0</div>
+                        </div>
+                        <div class="resumen-caja neto">
+                            <div style="font-size: 0.75rem; color: var(--text-light);">Efectivo a Entregar (Neto)</div>
+                            <div class="resumen-valor text-primary" id="rep-neto" style="font-size: 1.5rem;">$0</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="font-size: 0.9rem; margin-bottom: 8px;">Detalle de Movimientos</h3>
+                    <ul id="lista-movimientos-ui" class="lista-items">
+                        <!-- Inyectados por JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <button onclick="logout()" class="btn-outline" style="margin-top: 24px; font-size: 0.875rem;">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMACIÓN -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="modal-type">TIPO</h2>
+            <p id="modal-target" class="modal-text">Destino</p>
+            <p id="modal-amount" class="modal-monto">$0</p>
+            <div class="modal-actions">
+                <button id="btn-modal-cancel" class="btn-outline">Cancelar</button>
+                <button id="btn-modal-confirm" class="btn-primary">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">Mensaje</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ¡IMPORTANTE! Reemplaza los valores de firebaseConfig con los que te da Firebase
+        const firebaseConfig = {
+            apiKey: "PEGA_TU_API_KEY_AQUI",
+            authDomain: "PEGA_TU_AUTH_DOMAIN_AQUI",
+            projectId: "PEGA_TU_PROJECT_ID_AQUI",
+            storageBucket: "PEGA_TU_STORAGE_BUCKET_AQUI",
+            messagingSenderId: "PEGA_TU_MESSAGING_SENDER_ID_AQUI",
+            appId: "PEGA_TU_APP_ID_AQUI"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const ADMIN_EMAIL = 'admin@tucorreo.com'; // <-- PON TU CORREO AQUÍ
+        const appId = 'mensajero-bigbites-v3';
+        
+        let currentUser = null;
+        let clientesData = [];
+
+        const viewAuth = document.getElementById('view-auth');
+        const viewApp = document.getElementById('view-app');
+        const userInfo = document.getElementById('user-info');
+        
+        const formatMoney = (amount) => {
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
+        };
+        const formatTime = (ts) => {
+            return new Date(ts).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        };
+
+        window.showToast = function(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('toast-visible');
+            setTimeout(() => toast.classList.remove('toast-visible'), 3000);
+        }
+
+        window.switchTab = function(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('sec-entregas').classList.add('hidden');
+            document.getElementById('sec-gastos').classList.add('hidden');
+            document.getElementById('sec-clientes').classList.add('hidden');
+            document.getElementById('sec-reportes').classList.add('hidden');
+
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('sec-' + tab).classList.remove('hidden');
+        }
+
+        let modalConfirmCallback = null;
+        const modalEl = document.getElementById('confirm-modal');
+        
+        function solicitarConfirmacion(tipo, destino, monto, callback) {
+            const titleEl = document.getElementById('modal-type');
+            titleEl.textContent = tipo;
+            titleEl.className = tipo === 'INGRESO' ? 'text-success' : 'text-danger';
+            
+            document.getElementById('modal-target').textContent = destino;
+            document.getElementById('modal-amount').textContent = formatMoney(monto);
+            
+            const btnConfirm = document.getElementById('btn-modal-confirm');
+            btnConfirm.className = tipo === 'INGRESO' ? 'btn-success' : 'btn-danger';
+            
+            modalConfirmCallback = callback;
+            modalEl.classList.remove('hidden');
+        }
+
+        document.getElementById('btn-modal-cancel').addEventListener('click', () => {
+            modalEl.classList.add('hidden');
+            modalConfirmCallback = null;
+        });
+
+        document.getElementById('btn-modal-confirm').addEventListener('click', () => {
+            modalEl.classList.add('hidden');
+            if (modalConfirmCallback) modalConfirmCallback();
+            modalConfirmCallback = null;
+        });
+
+        // --- AUTH ---
+        if (auth) {
+            if (typeof __initial_auth_token !== 'undefined') {
+                signInWithCustomToken(auth, __initial_auth_token).catch(e => console.error(e));
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    userInfo.textContent = user.email || 'Usuario';
+                    viewAuth.classList.add('hidden');
+                    viewApp.classList.remove('hidden');
+                    
+                    // Control de acceso para Reportes
+                    if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                        document.getElementById('tab-reportes').classList.remove('hidden');
+                        document.getElementById('input-fecha-reporte').valueAsDate = new Date();
+                    } else {
+                        document.getElementById('tab-reportes').classList.add('hidden');
+                    }
+                    
+                    cargarClientes();
+                } else {
+                    currentUser = null;
+                    userInfo.textContent = "Desconectado";
+                    viewAuth.classList.remove('hidden');
+                    viewApp.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('form-login').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('auth-email').value;
+                const pass = document.getElementById('auth-password').value;
+                const btn = document.getElementById('btn-login');
+                btn.textContent = "Cargando..."; btn.disabled = true;
+                
+                signInWithEmailAndPassword(auth, email, pass)
+                    .then(() => showToast("Sesión iniciada"))
+                    .catch(err => showToast("Error: Verifica credenciales"))
+                    .finally(() => { btn.textContent = "Entrar"; btn.disabled = false; });
+            });
+
+            window.logout = function() { signOut(auth); }
+        }
+
+        // --- CLIENTES ---
+        const selectCliente = document.getElementById('select-cliente');
+        const boxOtros = document.getElementById('box-otros-cliente');
+        const inputOtros = document.getElementById('input-otros-cliente');
+
+        function cargarClientes() {
+            if (!currentUser || !db) return;
+            // Usamos path público para que Admin y Mensajero compartan los mismos datos
+            const clientesRef = collection(db, 'artifacts', appId, 'public', 'data', 'clientes');
+            
+            onSnapshot(clientesRef, (snapshot) => {
+                clientesData = [];
+                snapshot.forEach(doc => {
+                    clientesData.push({ id: doc.id, nombre: doc.data().nombre });
+                });
+                clientesData.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                actualizarVistasClientes();
+            }, (error) => {
+                showToast("Error cargando clientes.");
+            });
+        }
+
+        function actualizarVistasClientes() {
+            selectCliente.innerHTML = `
+                <option value="" disabled selected>Selecciona un cliente...</option>
+                <option value="OTROS">👤 Otros (Cliente Ocasional)</option>
+                <option value="CREAR" class="text-primary font-bold">➕ Crear nuevo cliente recurrente</option>
+                <option disabled>──────────</option>
+            `;
+            
+            clientesData.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre;
+                opt.dataset.nombre = c.nombre;
+                selectCliente.appendChild(opt);
+            });
+
+            const listaUI = document.getElementById('lista-clientes-ui');
+            listaUI.innerHTML = '';
+            if (clientesData.length === 0) {
+                listaUI.innerHTML = '<li style="color: var(--text-light); justify-content:center;">No hay clientes registrados.</li>';
+            } else {
+                clientesData.forEach(c => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>🏢 ${c.nombre}</span>`;
+                    listaUI.appendChild(li);
+                });
+            }
+        }
+
+        selectCliente.addEventListener('change', () => {
+            if (selectCliente.value === 'CREAR') {
+                switchTab('clientes');
+                selectCliente.value = '';
+                boxOtros.classList.add('hidden');
+                inputOtros.removeAttribute('required');
+            } else if (selectCliente.value === 'OTROS') {
+                boxOtros.classList.remove('hidden');
+                inputOtros.setAttribute('required', 'true');
+                inputOtros.focus();
+            } else {
+                boxOtros.classList.add('hidden');
+                inputOtros.removeAttribute('required');
+            }
+        });
+
+        document.getElementById('form-cliente').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser || !db) return;
+            
+            const inputNuevo = document.getElementById('input-nuevo-cliente');
+            const btn = document.getElementById('btn-guardar-cliente');
+            btn.textContent = "Guardando..."; btn.disabled = true;
+
+            try {
+                const clientesRef = collection(db, 'artifacts', appId, 'public', 'data', 'clientes');
+                await addDoc(clientesRef, { nombre: inputNuevo.value.trim(), creadoEn: Date.now() });
+                showToast("Cliente guardado");
+                inputNuevo.value = '';
+            } catch (e) {
+                showToast("Error al guardar");
+            } finally {
+                btn.textContent = "Guardar Cliente"; btn.disabled = false;
+            }
+        });
+
+        // --- ENTREGAS ---
+        document.getElementById('form-entrega').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!currentUser || !db) return;
+
+            let nombreClienteFinal = "";
+            if (selectCliente.value === 'OTROS') {
+                nombreClienteFinal = inputOtros.value.trim();
+            } else {
+                nombreClienteFinal = selectCliente.options[selectCliente.selectedIndex].dataset.nombre;
+            }
+            const monto = parseFloat(document.getElementById('input-monto-entrega').value);
+            
+            solicitarConfirmacion('INGRESO', nombreClienteFinal, monto, async () => {
+                const btn = document.getElementById('btn-submit-entrega');
+                btn.disabled = true; btn.textContent = "Registrando...";
+
+                try {
+                    const entregasRef = collection(db, 'artifacts', appId, 'public', 'data', 'entregas');
+                    await addDoc(entregasRef, { cliente: nombreClienteFinal, monto: monto, fecha: Date.now(), por: currentUser.email });
+                    showToast("✅ Ingreso registrado");
+                    document.getElementById('form-entrega').reset();
+                    boxOtros.classList.add('hidden');
+                    inputOtros.removeAttribute('required');
+                } catch (err) {
+                    showToast("Error al guardar");
+                } finally {
+                    btn.disabled = false; btn.textContent = "Registrar Entrega";
+                }
+            });
+        });
+
+        // --- GASTOS ---
+        document.getElementById('form-gasto').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!currentUser || !db) return;
+
+            const concepto = document.getElementById('input-concepto-gasto').value.trim();
+            const monto = parseFloat(document.getElementById('input-monto-gasto').value);
+            
+            solicitarConfirmacion('GASTO', concepto, monto, async () => {
+                const btn = document.getElementById('btn-submit-gasto');
+                btn.disabled = true; btn.textContent = "Registrando...";
+
+                try {
+                    const gastosRef = collection(db, 'artifacts', appId, 'public', 'data', 'gastos');
+                    await addDoc(gastosRef, { concepto: concepto, monto: monto, fecha: Date.now(), por: currentUser.email });
+                    showToast("✅ Gasto registrado");
+                    document.getElementById('form-gasto').reset();
+                } catch (err) {
+                    showToast("Error al guardar");
+                } finally {
+                    btn.disabled = false; btn.textContent = "Registrar Gasto";
+                }
+            });
+        });
+
+        // --- REPORTES ---
+        document.getElementById('btn-generar-reporte').addEventListener('click', async () => {
+            if (!currentUser || !db) return;
+            const fechaVal = document.getElementById('input-fecha-reporte').value;
+            if (!fechaVal) return showToast("Selecciona una fecha");
+
+            const btn = document.getElementById('btn-generar-reporte');
+            btn.textContent = "Consultando..."; btn.disabled = true;
+
+            try {
+                // Crear rangos de fecha para el filtro en JS
+                // Nota: Usamos el día local para el reporte.
+                const localDate = new Date(fechaVal + 'T00:00:00');
+                const startOfDay = localDate.getTime();
+                const endOfDay = localDate.getTime() + (24 * 60 * 60 * 1000) - 1;
+
+                // Descargar Colecciones completas (requerido sin índices)
+                const entregasRef = collection(db, 'artifacts', appId, 'public', 'data', 'entregas');
+                const gastosRef = collection(db, 'artifacts', appId, 'public', 'data', 'gastos');
+
+                const [snapEntregas, snapGastos] = await Promise.all([
+                    getDocs(entregasRef), getDocs(gastosRef)
+                ]);
+
+                let totalIngresos = 0;
+                let totalGastos = 0;
+                let movimientos = [];
+
+                snapEntregas.forEach(doc => {
+                    const d = doc.data();
+                    if (d.fecha >= startOfDay && d.fecha <= endOfDay) {
+                        totalIngresos += d.monto;
+                        movimientos.push({ tipo: 'INGRESO', texto: d.cliente, monto: d.monto, fecha: d.fecha });
+                    }
+                });
+
+                snapGastos.forEach(doc => {
+                    const d = doc.data();
+                    if (d.fecha >= startOfDay && d.fecha <= endOfDay) {
+                        totalGastos += d.monto;
+                        movimientos.push({ tipo: 'GASTO', texto: d.concepto, monto: d.monto, fecha: d.fecha });
+                    }
+                });
+
+                // Ordenar cronológicamente
+                movimientos.sort((a, b) => a.fecha - b.fecha);
+
+                // Actualizar UI
+                document.getElementById('rep-ingresos').textContent = formatMoney(totalIngresos);
+                document.getElementById('rep-gastos').textContent = formatMoney(totalGastos);
+                document.getElementById('rep-neto').textContent = formatMoney(totalIngresos - totalGastos);
+
+                const listaMov = document.getElementById('lista-movimientos-ui');
+                listaMov.innerHTML = '';
+                if (movimientos.length === 0) {
+                    listaMov.innerHTML = '<li style="justify-content:center; color: var(--text-light);">No hay registros en esta fecha.</li>';
+                } else {
+                    movimientos.forEach(m => {
+                        const li = document.createElement('li');
+                        const isIngreso = m.tipo === 'INGRESO';
+                        li.innerHTML = `
+                            <div>
+                                <div class="font-bold">${m.texto}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-light);">${formatTime(m.fecha)}</div>
+                            </div>
+                            <div class="${isIngreso ? 'text-success' : 'text-danger'} font-bold">
+                                ${isIngreso ? '+' : '-'}${formatMoney(m.monto)}
+                            </div>
+                        `;
+                        listaMov.appendChild(li);
+                    });
+                }
+
+                document.getElementById('resultados-reporte').classList.remove('hidden');
+
+            } catch (err) {
+                console.error(err);
+                showToast("Error al generar el reporte");
+            } finally {
+                btn.textContent = "Generar Reporte"; btn.disabled = false;
+            }
+        });
+
+    </script>
+</body>
+</html>
