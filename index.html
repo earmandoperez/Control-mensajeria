@@ -246,20 +246,22 @@
 
         // ¡IMPORTANTE! Reemplaza los valores de firebaseConfig con los que te da Firebase
         const firebaseConfig = {
-  apiKey: "AIzaSyAN1TVPw6FLCzfhmQErOJzGT67mPLPWPAM",
-  authDomain: "control-mensajeros-db12f.firebaseapp.com",
-  projectId: "control-mensajeros-db12f",
-  storageBucket: "control-mensajeros-db12f.firebasestorage.app",
-  messagingSenderId: "191235884534",
-  appId: "1:191235884534:web:b733d6762d37ce023373d7",
-  measurementId: "G-FVFMQBQGP0"
-};
+              apiKey: "AIzaSyAN1TVPw6FLCzfhmQErOJzGT67mPLPWPAM",
+              authDomain: "control-mensajeros-db12f.firebaseapp.com",
+              projectId: "control-mensajeros-db12f",
+              storageBucket: "control-mensajeros-db12f.firebasestorage.app",
+              messagingSenderId: "191235884534",
+              appId: "1:191235884534:web:b733d6762d37ce023373d7",
+              measurementId: "G-FVFMQBQGP0"
+        };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// Inicialización correcta
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        const ADMIN_EMAIL = 'earmandoperez@gmail.com'; // <-- PON TU CORREO AQUÍ
+// Tu correo administrador
+        const ADMIN_EMAIL = 'admin@bigbites.co'; // <-- PON TU CORREO AQUÍ
         const appId = 'mensajero-bigbites-v3';
         
         let currentUser = null;
